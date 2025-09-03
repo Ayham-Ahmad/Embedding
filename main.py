@@ -1,1 +1,212 @@
-print('ayham')
+import math, pandas
+
+class Embed:
+    __letter_dict = {
+        'Aa': 1, 'Bb': 2, 'Cc': 3, 'Dd': 4, 'Ee': 5, 'Ff': 6, 'Gg': 7,
+        'Hh': 8, 'Ii': 9, 'Jj': 10, 'Kk': 11, 'Ll': 12, 'Mm': 13, 'Nn': 14,
+        'Oo': 15, 'Pp': 16, 'Qq': 17, 'Rr': 18, 'Ss': 19, 'Tt': 20, 'Uu': 21,
+        'Vv': 22, 'Ww': 23, 'Xx': 24, 'Yy': 25, 'Zz': 26
+    }
+    __special_chars = [
+        '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+        '-', '_', '=', '+', '[', ']', '{', '}', '\\', '|',
+        ';', ':', "'", '"', ',', '<', '.', '>', '/', '?', '`', '~'
+    ]
+
+    def __init__(
+            self, 
+            wordsList: str = 'example', 
+            paraList: list[str] = ['example']
+            ):
+        self.__QueryArray = wordsList
+        self.__paraArray = paraList
+        self.__embeddedQueryArray = list()
+        self.__embeddedParaArray = list()
+        self.__similaryList = list()
+
+    def getEmbed(self, char):
+        if char.isdigit():
+            return int(char)
+        else:
+            for charComp, num in self.__letter_dict.items():
+                if charComp[0] == char or charComp[1] == char:
+                    return num         
+
+    def embedAQuery(self, query):
+        embededWord = 0
+        embeddedQuery = list()
+        debugDict = dict()
+        word = ''
+        num = 0
+        for char in query:
+            if char == '\n' or char == ' ' or char == query[-1]:
+                embeddedQuery.append(embededWord)
+                debugDict[word] = embededWord
+
+                #reset var
+                embededWord = 0
+                word = ''
+
+            elif char in self.__special_chars:
+                continue
+            else:
+                # print(self.getEmbed(char))
+                num = self.getEmbed(char)
+                if num is not None:
+                    embededWord += num
+            word += char
+
+        return embeddedQuery, debugDict
+    
+    def getVector(self):
+        debugDict = dict()
+        debugDictList = list()
+        self.__embeddedQueryArray, debugDict = self.embedAQuery(query=self.__QueryArray)
+        debugDictList.append(debugDict)
+
+        for query in self.__paraArray:
+            embeddedQuery, debugDict = self.embedAQuery(query=query)
+            self.__embeddedParaArray.append(embeddedQuery)
+            debugDictList.append(debugDict)
+        
+        return self.__embeddedQueryArray, self.__embeddedParaArray, debugDictList[0], debugDictList[1:]
+
+    def getSimilarty(self, context) -> int:
+            total = 0
+            for num in context:
+                total += math.sin(num)
+            self.__similaryList.append(total/len(context))
+            
+    def getBextContext(self):
+        self.getSimilarty(self.__embeddedQueryArray)
+        for context in self.__embeddedParaArray:
+            self.getSimilarty(context)
+
+        numbers = list()
+        for i in self.__similaryList[1:]:
+            numbers.append(self.__similaryList[0] - i)
+
+        return numbers.index(min(numbers[1:]))-1
+
+    def reset(self):
+        self.__QueryArray.clear()
+        self.__paraArray.clear()
+        self.__embeddedQueryArray.clear()
+        self.__embeddedParaArray.clear()
+        self.__similaryList.clear()
+
+    def embed(self, printEmbeddedQuery: bool = False, printEmbeddedContext: bool = False, printDebugContext: bool = False, printDebugQuery: bool = False, printDebugContexdAndQuerey: bool = False, printSimilarty: bool = False): 
+        vector = self.getVector()
+        count = self.getBextContext()
+
+        if printEmbeddedQuery:
+            print(f'\nEmbedded Query:\n{vector[0]}\n')
+        if printEmbeddedContext:
+            print(f'\nEmbedded Context:\n{vector[1]}\n')
+        if printDebugQuery or printDebugContexdAndQuerey:
+            print(f'\nDebug Query:\n{vector[2]}\n')
+        if printDebugContext or printDebugContexdAndQuerey:
+            print(f'\nDebug Query:\n{vector[3]}\n')
+        if printSimilarty:
+            print(f'\nSimilary List: {self.__similaryList}\n')
+
+        return vector, count    
+
+if __name__ == '__main__':
+
+    examples = {
+        "What does Rabbits eat?": [
+            "Rabbits primarily eat hay, which is crucial for their digestive health and helps wear down their teeth. They also enjoy fresh leafy greens like romaine lettuce and parsley, and occasionally small pieces of fruit as treats.",  # ✅ relevant
+            "The moon has no light of its own; it shines because it reflects sunlight. Depending on its position relative to Earth and the sun, we see different phases of the moon throughout the month.",
+            "Octopuses have three hearts and blue blood. Two of the hearts pump blood to the gills, while the third pumps it to the rest of the body. Their blue blood helps them survive in deep, cold ocean environments.",
+            "Mount Everest is the tallest mountain in the world, located in the Himalayas between Nepal and Tibet. It rises to a height of 8,849 meters above sea level.",
+            "Bananas are one of the most widely consumed fruits in the world and are known for being rich in potassium, which supports heart health and proper muscle function."
+        ],
+        
+        "How many planets are in the Solar System?": [
+            "There are eight planets in the Solar System, ranging from Mercury, the smallest, to Jupiter, the largest. Pluto was reclassified as a dwarf planet in 2006 by the International Astronomical Union.",  # ✅ relevant
+            "Sharks have been around for over 400 million years, making them older than trees. They play a crucial role in maintaining ocean ecosystems.",
+            "The Eiffel Tower, located in Paris, France, was completed in 1889 and was originally criticized by many artists, but it has since become a global cultural icon.",
+            "Rainbows form when sunlight is refracted, reflected, and dispersed through water droplets, separating the light into its spectrum of colors.",
+            "Chess is a strategic board game played between two players. It originated in India around the 6th century and spread globally."
+        ],
+        
+        "Where do penguins live?": [
+            "Penguins are primarily found in the Southern Hemisphere, with many species living in and around Antarctica. Some also inhabit temperate regions like South Africa, New Zealand, and the Galápagos Islands.",  # ✅ relevant
+            "The Great Wall of China stretches over 21,000 kilometers and was built to protect Chinese states from invasions.",
+            "Bamboo is a fast-growing plant that can grow up to 91 cm in a single day under the right conditions.",
+            "Horses have been domesticated for thousands of years and have played vital roles in agriculture, transport, and warfare.",
+            "Saturn's rings are made up of countless icy particles, ranging from tiny grains to chunks the size of mountains."
+        ],
+        
+        "What is the capital of Japan?": [
+            "Tokyo is the capital of Japan. It is a bustling metropolis known for its mix of modern skyscrapers, traditional temples, advanced technology, and vibrant culture. It also has one of the busiest public transportation systems in the world.",  # ✅ relevant
+            "Polar bears rely heavily on sea ice to hunt seals, which are their primary source of food.",
+            "Coffee is one of the most widely traded commodities in the world, originating from Ethiopia before spreading to the Middle East and Europe.",
+            "The Sahara Desert is the largest hot desert on Earth, covering much of North Africa.",
+            "Whales communicate using complex sounds, some of which can travel hundreds of miles underwater."
+        ],
+        
+        "Why do leaves change color in autumn?": [
+            "Leaves change color in autumn because chlorophyll breaks down as daylight decreases and temperatures drop. This reveals other pigments like carotenoids and anthocyanins, giving leaves their yellow, orange, and red hues.",  # ✅ relevant
+            "Lightning is a sudden electrostatic discharge that occurs during thunderstorms, producing both light and sound.",
+            "The Amazon River is the largest river by discharge volume of water in the world.",
+            "Spiders produce silk from specialized glands, and different types of silk serve various purposes like web-building, wrapping prey, or making egg sacs.",
+            "Basketball was invented in 1891 by James Naismith as an indoor sport to keep athletes active during the winter."
+        ],
+        
+        "How many bones are in the human body?": [
+            "An adult human body typically has 206 bones. Babies are born with around 270 bones, but many fuse together as they grow into adulthood.",  # ✅ relevant
+            "Venus is often called Earth's twin because it is similar in size and composition, though its surface temperature is extremely high due to a thick atmosphere.",
+            "Egyptian pyramids were constructed as tombs for pharaohs and are considered one of the Seven Wonders of the Ancient World.",
+            "The violin is a string instrument played with a bow and is widely used in classical music and many other genres.",
+            "Volcanoes erupt when pressure from molten rock beneath the Earth's surface builds up, forcing magma and gases upward."
+        ],
+        
+        "What gas do humans need to breathe?": [
+            "Humans need oxygen to breathe. Oxygen enters the lungs, diffuses into the bloodstream, and is used by cells to produce energy through respiration.",  # ✅ relevant
+            "Kangaroos are marsupials native to Australia and are known for their powerful hind legs and long tails.",
+            "Diamonds are formed under extreme heat and pressure deep within the Earth's mantle.",
+            "Basketball courts have a standard length of 28 meters and a width of 15 meters in international play.",
+            "Clouds form when moist air rises, cools, and condenses into tiny water droplets or ice crystals."
+        ],
+        
+        "Who painted the Mona Lisa?": [
+            "The Mona Lisa was painted by Leonardo da Vinci in the early 16th century. It is one of the most famous and valuable artworks in the world, displayed in the Louvre Museum in Paris.",  # ✅ relevant
+            "Mars is often called the Red Planet because of its iron oxide-rich surface, giving it a reddish appearance.",
+            "Basketball hoops are set at a standard height of 10 feet from the ground.",
+            "Penguins cannot fly but are excellent swimmers, using their wings like flippers.",
+            "Everest climbers must carry oxygen tanks as the air is very thin at the summit."
+        ],
+        
+        "How do bees make honey?": [
+            "Bees make honey by collecting nectar from flowers, storing it in their stomachs, and breaking it down with enzymes. Back at the hive, they deposit the nectar into honeycombs and fan it with their wings until it thickens into honey.",  # ✅ relevant
+            "The Pacific Ocean is the largest and deepest ocean on Earth, covering more than 60 million square miles.",
+            "Owls are nocturnal birds of prey known for their excellent vision and silent flight.",
+            "Trains revolutionized transportation in the 19th century, allowing faster movement of goods and people across long distances.",
+            "Mount Kilimanjaro in Tanzania is the highest mountain in Africa, standing at 5,895 meters."
+        ],
+        
+        "What is photosynthesis?": [
+            "Photosynthesis is the process by which green plants and some other organisms use sunlight, water, and carbon dioxide to produce glucose and oxygen. It is essential for life on Earth as it provides food and oxygen.",  # ✅ relevant
+            "Soccer, or football, is the world's most popular sport, played and watched by millions globally.",
+            "Giraffes are the tallest land animals, with males reaching up to 5.5 meters in height.",
+            "Earthquakes occur when tectonic plates shift, releasing energy that shakes the ground.",
+            "Chocolate is made from cocoa beans, which are fermented, dried, roasted, and processed into cocoa mass."
+        ]
+    }
+
+    totalZeros = 0
+
+    for query, context in examples.items():
+        embed = Embed(query, context)
+        vector, count = embed.embed() 
+        
+        # print(f'\nQuery: {query}\n')
+        # print(f'\nBest Context: {count}\n')
+        # print(f'\nBest Context: {context[count]}\n')
+
+        if count == 0:
+            totalZeros += 1
+            
+    print(f'\n\nAccuracy: {totalZeros/len(examples)}')
