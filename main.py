@@ -1,4 +1,4 @@
-import math, pandas
+import math, pandas as pd, numpy as np
 
 class Embed:
     __letter_dict = {
@@ -12,19 +12,21 @@ class Embed:
         '-', '_', '=', '+', '[', ']', '{', '}', '\\', '|',
         ';', ':', "'", '"', ',', '<', '.', '>', '/', '?', '`', '~'
     ]
+    __results = list()
+    __answers = [0,0,0,0,0,0,0,0,0,0]
 
     def __init__(
             self, 
             wordsList: str = 'example', 
-            paraList: list[str] = ['example']
+            paraDict: list[str] = ['example']
             ):
         self.__QueryArray = wordsList
-        self.__paraArray = paraList
+        self.__paraArray = paraDict
         self.__embeddedQueryArray = list()
         self.__embeddedParaArray = list()
         self.__similaryList = list()
 
-    def getEmbed(self, char):
+    def getEmbedForChar(self, char) -> int:
         if char.isdigit():
             return int(char)
         else:
@@ -32,7 +34,7 @@ class Embed:
                 if charComp[0] == char or charComp[1] == char:
                     return num         
 
-    def embedAQuery(self, query):
+    def getEmbedForAQuery(self, query) -> tuple[list[int], dict[str, int]]:
         embededWord = 0
         embeddedQuery = list()
         debugDict = dict()
@@ -43,61 +45,58 @@ class Embed:
                 embeddedQuery.append(embededWord)
                 debugDict[word] = embededWord
 
-                #reset var
+                #reset vars
                 embededWord = 0
                 word = ''
-
             elif char in self.__special_chars:
                 continue
             else:
                 # print(self.getEmbed(char))
-                num = self.getEmbed(char)
+                num = self.getEmbedForChar(char)
                 if num is not None:
                     embededWord += num
             word += char
 
         return embeddedQuery, debugDict
     
-    def getVector(self):
+    def getVector(self) -> tuple[list[int], list[list[int]], dict[str, int], list[dict[str, int]]]:
         debugDict = dict()
         debugDictList = list()
-        self.__embeddedQueryArray, debugDict = self.embedAQuery(query=self.__QueryArray)
+        self.__embeddedQueryArray, debugDict = self.getEmbedForAQuery(query=self.__QueryArray)
         debugDictList.append(debugDict)
 
         for query in self.__paraArray:
-            embeddedQuery, debugDict = self.embedAQuery(query=query)
+            embeddedQuery, debugDict = self.getEmbedForAQuery(query=query)
             self.__embeddedParaArray.append(embeddedQuery)
             debugDictList.append(debugDict)
         
         return self.__embeddedQueryArray, self.__embeddedParaArray, debugDictList[0], debugDictList[1:]
 
-    def getSimilarty(self, context) -> int:
+    def getSimilarty(self, context):
             total = 0
             for num in context:
-                total += math.sin(num)
+                total += math.cos(num) * math.sin(num) * math.tan(num)
             self.__similaryList.append(total/len(context))
             
-    def getBextContext(self):
+    def getBestContext(self) -> int:
         self.getSimilarty(self.__embeddedQueryArray)
         for context in self.__embeddedParaArray:
             self.getSimilarty(context)
 
-        numbers = list()
-        for i in self.__similaryList[1:]:
-            numbers.append(self.__similaryList[0] - i)
+        return self.__similaryList[1:].index(min(self.__similaryList[1:], key=lambda x:abs(x-self.__similaryList[0])))
 
-        return numbers.index(min(numbers[1:]))-1
-
-    def reset(self):
-        self.__QueryArray.clear()
-        self.__paraArray.clear()
-        self.__embeddedQueryArray.clear()
-        self.__embeddedParaArray.clear()
-        self.__similaryList.clear()
-
-    def embed(self, printEmbeddedQuery: bool = False, printEmbeddedContext: bool = False, printDebugContext: bool = False, printDebugQuery: bool = False, printDebugContexdAndQuerey: bool = False, printSimilarty: bool = False): 
+    @classmethod
+    def accuracy(cls) -> float:
+        trueValues = 0
+        for i in range(len(cls.__answers)):
+            # print(cls.__answers[i] , cls.__results[i])
+            if cls.__answers[i] == cls.__results[i]:
+                trueValues += 1
+        return trueValues/len(cls.__results)
+ 
+    def embed(self, printEmbeddedQuery: bool = False, printEmbeddedContext: bool = False, printDebugContext: bool = False, printDebugQuery: bool = False, printDebugContexdAndQuerey: bool = False, printSimilarty: bool = False, printBestContextIndex: bool = False, printBestContext: bool = False) -> tuple[list[int], list[list[int]], dict[str, int], list[dict[str, int]]]: 
         vector = self.getVector()
-        count = self.getBextContext()
+        self.__results.append(self.getBestContext())
 
         if printEmbeddedQuery:
             print(f'\nEmbedded Query:\n{vector[0]}\n')
@@ -109,8 +108,12 @@ class Embed:
             print(f'\nDebug Query:\n{vector[3]}\n')
         if printSimilarty:
             print(f'\nSimilary List: {self.__similaryList}\n')
+        if printBestContextIndex:
+            print(f'\nBest Context: {self.__results[-1]}\n')
+        if printBestContext:
+            print(f'\nBest Context: {self.__paraArray[self.__results[-1]]}\n')
 
-        return vector, count    
+        return vector    
 
 if __name__ == '__main__':
 
@@ -199,14 +202,13 @@ if __name__ == '__main__':
     totalZeros = 0
 
     for query, context in examples.items():
-        embed = Embed(query, context)
-        vector, count = embed.embed() 
-        
         # print(f'\nQuery: {query}\n')
-        # print(f'\nBest Context: {count}\n')
-        # print(f'\nBest Context: {context[count]}\n')
 
-        if count == 0:
-            totalZeros += 1
+        embed = Embed(query, context)
+        vector = embed.embed() 
             
-    print(f'\n\nAccuracy: {totalZeros/len(examples)}')
+    print(f'\n\nAccuracy: {embed.accuracy()}')
+
+
+# Convert the list to numpy array
+# make the accuracy as a class function
